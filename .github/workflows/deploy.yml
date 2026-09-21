@@ -1,0 +1,57 @@
+name: Scrape and deploy
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # every 6 hours, offset off the hour to avoid the cron stampede
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install --quiet httpx beautifulsoup4
+
+      - name: Scrape providers
+        run: python -m scraper.main
+
+      - name: Export static site
+        run: python -m scraper.export site
+
+      - name: Show what was built
+        run: |
+          echo "models: $(python -c "import json;print(len(json.load(open('site/api/models.json'))))")"
+          ls -la site/ site/api/
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

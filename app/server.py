@@ -16,6 +16,7 @@ app = FastAPI(title="ModelRadar", version="2.0.0")
 
 
 @app.get("/api/models")
+@app.get("/api/models.json")
 def list_models():
     conn = db.connect()
     try:
@@ -25,6 +26,7 @@ def list_models():
 
 
 @app.get("/api/status")
+@app.get("/api/status.json")
 def status():
     conn = db.connect()
     try:

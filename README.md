@@ -18,10 +18,24 @@ pip install -r requirements.txt
 ./run.sh               # serves on http://localhost:8000
 ```
 
-## Cron (auto-refresh every 6h)
+## Deployment — GitHub Pages
+
+`.github/workflows/deploy.yml` runs the scraper every 6 hours, exports the
+database to static JSON and publishes the site. No server, no database to host.
+
+- Site: `https://nikilrao18.github.io/llmradar/`
+- JSON endpoint: `https://nikilrao18.github.io/llmradar/api/models.json`
+
+One-time setup: repo **Settings → Pages → Source: GitHub Actions**.
+
+The frontend resolves its data path from the location of `core.js`, so the same
+build works at a project path (`/llmradar/`) or a domain root (a custom domain
+later) with no changes.
+
+## Local cron (only if self-hosting instead of Pages)
 
 ```cron
-*/6 * * * * /path/to/modelradar/scrape.sh >> /path/to/modelradar/data/cron.log 2>&1
+17 */6 * * * /path/to/llmradar/scrape.sh >> /path/to/llmradar/data/cron.log 2>&1
 ```
 
 ## Data sources

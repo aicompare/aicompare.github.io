@@ -66,13 +66,20 @@ window.LR = (function () {
 
   const capCount = (m) => (m.capabilities ? Object.values(m.capabilities).filter(Boolean).length : 0);
 
-  /* ---------------- data ---------------- */
+  /* ---------------- data ----------------
+     Base is derived from this script's own URL so the site works at a domain
+     root (llmradar.ai) and under a project path (/llmradar/) unchanged. */
+  const BASE = (function () {
+    const s = document.currentScript;
+    return s ? new URL("./", s.src).href : "./";
+  })();
+
   let cache = null;
   async function load() {
     if (cache) return cache;
     const [models, status] = await Promise.all([
-      fetch("/api/models").then((r) => r.json()),
-      fetch("/api/status").then((r) => r.json()).catch(() => []),
+      fetch(BASE + "api/models.json").then((r) => r.json()),
+      fetch(BASE + "api/status.json").then((r) => r.json()).catch(() => []),
     ]);
     cache = { models, status: Object.fromEntries((status || []).map((s) => [s.provider, s])) };
     return cache;
@@ -151,10 +158,9 @@ window.LR = (function () {
       });
     }
     // mark current page
-    const here = location.pathname.replace(/\/$/, "") || "/";
+    const here = (location.pathname.split("/").pop() || "index.html").replace(/^$/, "index.html");
     $$(".nav a, .foot-meta a").forEach((a) => {
-      const href = a.getAttribute("href").replace(/\/$/, "") || "/";
-      if (href === here) a.setAttribute("aria-current", "page");
+      if (a.getAttribute("href") === here) a.setAttribute("aria-current", "page");
     });
   }
 
