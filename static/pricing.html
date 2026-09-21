@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Model Pricing Calculator — LLMRadar</title>
+<meta name="description" content="Work out what your actual workload costs on every major AI model. Enter your request volume and token counts to see real monthly spend, ranked.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%231a2415'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%23c8f542' stroke-width='6'/%3E%3Cline x1='50' y1='50' x2='74' y2='26' stroke='%23c8f542' stroke-width='6'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..650;1,9..144,400..650&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="/">
+      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" fill="none" stroke="#8a9578" stroke-width="1"/>
+        <circle cx="12" cy="12" r="5" fill="none" stroke="#8a9578" stroke-width="1"/>
+        <circle cx="17" cy="7" r="2" fill="#c8f542"/>
+      </svg>
+      LLM Radar
+    </a>
+    <nav class="nav">
+      <a href="/">Home</a><a href="/models">Models</a><a href="/compare">Compare</a>
+      <a href="/pricing">Pricing</a><a href="/about">About</a>
+    </nav>
+    <div class="header-status"><span class="dot live"></span><span class="header-status-text">LOADING</span></div>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-label="Menu">≡</button>
+  </div>
+</header>
+
+<main>
+  <div class="wrap page-head">
+    <p class="eyebrow">Cost calculator · your numbers</p>
+    <h1 class="display">What it <span class="ital lime">actually</span> costs.</h1>
+    <p class="lede">Per-token prices are meaningless until you multiply them by your own traffic.
+      Put your workload in and see the monthly bill on every model, cheapest first.</p>
+  </div>
+
+  <div class="wrap">
+    <div class="calc">
+      <div class="calc-field">
+        <label for="preset">Workload preset</label>
+        <select id="preset">
+          <option value="chat">Chat assistant</option>
+          <option value="rag">RAG / document Q&amp;A</option>
+          <option value="agent">Coding agent</option>
+          <option value="batch">Bulk classification</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div class="calc-field">
+        <label for="reqs">Requests / month</label>
+        <input id="reqs" type="number" min="0" step="1000" value="100000">
+      </div>
+      <div class="calc-field">
+        <label for="tin">Input tokens / request</label>
+        <input id="tin" type="number" min="0" step="100" value="1500">
+      </div>
+      <div class="calc-field">
+        <label for="tout">Output tokens / request</label>
+        <input id="tout" type="number" min="0" step="100" value="500">
+      </div>
+      <div class="calc-field">
+        <label for="prov">Provider</label>
+        <select id="prov"><option value="all">All providers</option></select>
+      </div>
+    </div>
+
+    <p class="table-foot" id="summary"></p>
+    <div class="bars" id="bars"></div>
+    <p class="footnote">Estimates only. Assumes no prompt caching, no batch discount and no committed-use
+      pricing — all three can cut real bills substantially. Rates come from the same index as the rest of
+      the site; check each vendor's page before budgeting.</p>
+  </div>
+
+  <section class="sec">
+    <div class="wrap">
+      <p class="eyebrow">By provider</p>
+      <h2 class="display">Cheapest <span class="q">on each rack.</span></h2>
+      <p class="sec-lede">The lowest-cost model from every provider at the workload above — useful when
+        you are tied to one vendor by contract, region or data residency.</p>
+      <div class="card-grid" id="byprov"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="ghost-mark">LLM Radar</div>
+    <div class="foot-meta">
+      <span>© 2026 LLMRadar</span>
+      <span>Independent · not affiliated with any provider</span>
+      <nav>
+        <a href="/">Home</a><a href="/models">Models</a><a href="/compare">Compare</a>
+        <a href="/pricing">Pricing</a><a href="/about">About</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+
+<script src="/core.js"></script>
+<script>
+LR.boot(function (models) {
+  const { $, esc, usd, PROVIDER_LABEL } = LR;
+
+  const PRESETS = {
+    chat:  { reqs: 100000, tin: 1500,  tout: 500 },
+    rag:   { reqs: 30000,  tin: 12000, tout: 700 },
+    agent: { reqs: 8000,   tin: 25000, tout: 3000 },
+    batch: { reqs: 1000000, tin: 400,  tout: 60 },
+  };
+
+  const provs = [...new Set(models.map((m) => m.provider))].sort();
+  $("#prov").insertAdjacentHTML("beforeend",
+    provs.map((p) => `<option value="${esc(p)}">${esc(PROVIDER_LABEL[p] || p)}</option>`).join(""));
+
+  const money = (n) =>
+    n >= 1000 ? "$" + Math.round(n).toLocaleString("en-US")
+              : n >= 1 ? "$" + n.toFixed(2)
+              : "$" + n.toFixed(3);
+
+  function monthly(m, reqs, tin, tout) {
+    if (m.input_price == null || m.output_price == null) return null;
+    return (reqs * tin / 1e6) * m.input_price + (reqs * tout / 1e6) * m.output_price;
+  }
+
+  function render() {
+    const reqs = +$("#reqs").value || 0;
+    const tin = +$("#tin").value || 0;
+    const tout = +$("#tout").value || 0;
+    const prov = $("#prov").value;
+
+    const rows = models
+      .filter((m) => prov === "all" || m.provider === prov)
+      .map((m) => ({ m, cost: monthly(m, reqs, tin, tout) }))
+      .filter((r) => r.cost != null)
+      .sort((a, b) => a.cost - b.cost);
+
+    if (!rows.length) { $("#bars").innerHTML = `<p class="empty">No priced models for that filter.</p>`; return; }
+
+    const max = rows[rows.length - 1].cost;
+    const cheapest = rows[0];
+
+    $("#summary").textContent =
+      `${(reqs).toLocaleString("en-US")} requests × ${tin.toLocaleString("en-US")} in / ${tout.toLocaleString("en-US")} out tokens` +
+      ` · ${rows.length} models priced · cheapest ${money(cheapest.cost)}/mo on ${cheapest.m.name}`;
+
+    $("#bars").innerHTML = rows.map((r, i) => `
+      <div class="bar-row ${i === 0 ? "best" : ""}">
+        <div class="bar-name">${esc(r.m.name)}<span>${esc(r.m.provider)} · ${usd(r.m.input_price)} / ${usd(r.m.output_price)}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${max ? (r.cost / max) * 100 : 0}%"></div></div>
+        <div class="bar-val">${money(r.cost)}<span class="s"></span></div>
+      </div>`).join("");
+
+    /* cheapest per provider */
+    const best = {};
+    rows.forEach((r) => { if (!best[r.m.provider]) best[r.m.provider] = r; });
+    $("#byprov").innerHTML = Object.values(best).map((r) => `
+      <article class="card">
+        <div class="card-top"><div>
+          <p class="eyebrow no-rule" style="margin-bottom:10px">${esc(PROVIDER_LABEL[r.m.provider] || r.m.provider)}</p>
+          <h3>${esc(r.m.name)}</h3><span class="m-id">${esc(r.m.model_id)}</span>
+        </div></div>
+        <div class="card-rows">
+          <div class="card-row"><span class="rk">Monthly</span><span class="rv lime">${money(r.cost)}</span></div>
+          <div class="card-row"><span class="rk">Vs cheapest</span><span class="rv">${
+            cheapest.cost > 0 ? (r.cost / cheapest.cost).toFixed(1) + "×" : "—"}</span></div>
+          <div class="card-row"><span class="rk">Input</span><span class="rv">${usd(r.m.input_price)}</span></div>
+          <div class="card-row"><span class="rk">Output</span><span class="rv">${usd(r.m.output_price)}</span></div>
+        </div>
+      </article>`).join("");
+  }
+
+  $("#preset").addEventListener("change", (e) => {
+    const p = PRESETS[e.target.value];
+    if (p) { $("#reqs").value = p.reqs; $("#tin").value = p.tin; $("#tout").value = p.tout; }
+    render();
+  });
+  ["reqs", "tin", "tout"].forEach((id) =>
+    $("#" + id).addEventListener("input", () => { $("#preset").value = "custom"; render(); }));
+  $("#prov").addEventListener("change", render);
+
+  render();
+});
+</script>
+</body>
+</html>

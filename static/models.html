@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>All AI Models — LLMRadar</title>
+<meta name="description" content="Every tracked AI model as a card: pricing, context window, free tier, capability and data freshness.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%231a2415'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%23c8f542' stroke-width='6'/%3E%3Cline x1='50' y1='50' x2='74' y2='26' stroke='%23c8f542' stroke-width='6'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..650;1,9..144,400..650&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="/">
+      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" fill="none" stroke="#8a9578" stroke-width="1"/>
+        <circle cx="12" cy="12" r="5" fill="none" stroke="#8a9578" stroke-width="1"/>
+        <circle cx="17" cy="7" r="2" fill="#c8f542"/>
+      </svg>
+      LLM Radar
+    </a>
+    <nav class="nav">
+      <a href="/">Home</a><a href="/models">Models</a><a href="/compare">Compare</a>
+      <a href="/pricing">Pricing</a><a href="/about">About</a>
+    </nav>
+    <div class="header-status"><span class="dot live"></span><span class="header-status-text">LOADING</span></div>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-label="Menu">≡</button>
+  </div>
+</header>
+
+<main>
+  <div class="wrap page-head">
+    <p class="eyebrow">Catalogue · <span id="hcount">—</span> models</p>
+    <h1 class="display">Every <span class="ital lime">model.</span></h1>
+    <p class="lede">One card per model: what it costs, how much it can read, what the vendor says it is
+      for, and how recently we checked.</p>
+  </div>
+
+  <div class="wrap">
+    <div class="toolbar">
+      <input class="search" id="search" type="search" placeholder="Search models…" autocomplete="off" aria-label="Search models">
+      <div class="chips" id="chips"></div>
+      <select class="control" id="cap" aria-label="Filter by capability">
+        <option value="all">Any capability</option>
+      </select>
+      <select class="control" id="sort" aria-label="Sort models">
+        <option value="input_price">Cheapest first</option>
+        <option value="-input_price">Most expensive first</option>
+        <option value="-context_window">Biggest context</option>
+        <option value="name">A–Z</option>
+      </select>
+      <span class="count" id="count"></span>
+    </div>
+  </div>
+
+  <div class="wrap"><div class="card-grid" id="grid"></div></div>
+  <div class="wrap"><p class="table-foot" id="foot"></p></div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="ghost-mark">LLM Radar</div>
+    <div class="foot-meta">
+      <span>© 2026 LLMRadar</span>
+      <span>Independent · not affiliated with any provider</span>
+      <nav>
+        <a href="/">Home</a><a href="/models">Models</a><a href="/compare">Compare</a>
+        <a href="/pricing">Pricing</a><a href="/about">About</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+
+<script src="/core.js"></script>
+<script>
+LR.boot(function (models) {
+  const { $, $$, esc, usd, tokens, freshBadge, PROVIDER_LABEL } = LR;
+  const state = { provider: "all", cap: "all", q: "", sort: "input_price" };
+
+  $("#cap").insertAdjacentHTML("beforeend",
+    LR.CAPS.map(([k, label]) => `<option value="${k}">Has ${label.toLowerCase()}</option>`).join(""));
+
+  document.getElementById("hcount").textContent = models.length;
+
+  const providers = [...new Set(models.map((m) => m.provider))].sort();
+  $("#chips").innerHTML =
+    `<button class="chip active" data-p="all">All</button>` +
+    providers.map((p) => `<button class="chip" data-p="${esc(p)}">${esc(PROVIDER_LABEL[p] || p)}</button>`).join("");
+
+  function render() {
+    let list = models.filter((m) =>
+      (state.provider === "all" || m.provider === state.provider) &&
+      (state.cap === "all" || (m.capabilities && m.capabilities[state.cap])) &&
+      (!state.q || (m.name + " " + m.model_id + " " + (m.best_for || "") +
+        " " + (m.features || []).join(" ")).toLowerCase().includes(state.q))
+    );
+    const s = state.sort;
+    const desc = s.startsWith("-");
+    const k = desc ? s.slice(1) : s;
+    list.sort((a, b) => {
+      let x = a[k], y = b[k];
+      if (k === "name") return String(x).localeCompare(String(y));
+      if (x == null) return 1;
+      if (y == null) return -1;
+      return desc ? y - x : x - y;
+    });
+
+    $("#grid").innerHTML = list.length ? list.map((m) => `
+      <article class="card">
+        <div class="card-top">
+          <div>
+            <h3>${esc(m.name)}</h3>
+            <span class="m-id">${esc(m.model_id)}</span>
+          </div>
+          ${m.category ? `<span class="cat">${esc(m.category)}</span>` : ""}
+        </div>
+        <p class="card-best">${esc(m.best_for) || '<span class="na">No vendor description.</span>'}</p>
+        ${Array.isArray(m.features) && m.features.length
+          ? `<ul class="featlist">${m.features.map((f) => `<li>${esc(f)}</li>`).join("")}</ul>` : ""}
+        ${m.capabilities ? `<div class="capstrip">${LR.CAPS.filter(([k]) => m.capabilities[k])
+            .map(([, label]) => `<span class="captag">${esc(label)}</span>`).join("")}</div>` : ""}
+        <div class="card-rows">
+          <div class="card-row"><span class="rk">Input</span><span class="rv">${usd(m.input_price) || "—"}</span></div>
+          <div class="card-row"><span class="rk">Output</span><span class="rv">${usd(m.output_price) || "—"}</span></div>
+          <div class="card-row"><span class="rk">Cache read</span><span class="rv">${usd(m.cache_read_price) || "—"}</span></div>
+          <div class="card-row"><span class="rk">Context</span><span class="rv">${tokens(m.context_window) || "—"}</span></div>
+          <div class="card-row"><span class="rk">Free tier</span><span class="rv">${esc(m.free_tier) || "None"}</span></div>
+          <div class="card-row"><span class="rk">Provider</span><span class="rv">${esc(m.provider)}</span></div>
+        </div>
+        ${freshBadge(m)}
+      </article>`).join("")
+      : `<div class="card"><p class="empty">No models match that search.</p></div>`;
+
+    $("#count").textContent = `${list.length} / ${models.length}`;
+    $("#foot").textContent = `${list.length} models shown · prices per 1M tokens, USD`;
+  }
+
+  $("#chips").addEventListener("click", (e) => {
+    const c = e.target.closest(".chip");
+    if (!c) return;
+    state.provider = c.dataset.p;
+    $$(".chip").forEach((x) => x.classList.toggle("active", x === c));
+    render();
+  });
+  $("#sort").addEventListener("change", (e) => { state.sort = e.target.value; render(); });
+  $("#cap").addEventListener("change", (e) => { state.cap = e.target.value; render(); });
+  let t;
+  $("#search").addEventListener("input", (e) => {
+    clearTimeout(t);
+    const v = e.target.value.trim().toLowerCase();
+    t = setTimeout(() => { state.q = v; render(); }, 120);
+  });
+
+  render();
+});
+</script>
+</body>
+</html>

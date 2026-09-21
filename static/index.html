@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLMRadar — The LLM Price Index</title>
+<meta name="description" content="Live pricing, context windows, cache rates and free tiers for every major AI model — Claude, GPT, Gemini, Llama and Mistral. Updated automatically.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%231a2415'/%3E%3Ccircle cx='50' cy='50' r='30' fill='none' stroke='%23c8f542' stroke-width='6'/%3E%3Cline x1='50' y1='50' x2='74' y2='26' stroke='%23c8f542' stroke-width='6'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..650;1,9..144,400..650&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body aria-busy="true">
+
+<div id="gate">
+  <p class="gate-kicker">LLM Radar</p>
+  <div class="gate-mark">LR</div>
+  <div class="gate-rule"></div>
+  <span class="gate-counter">SYNCING 000</span>
+  <button class="gate-btn" type="button">
+    <span class="gate-btn-label">Calibrate radar</span>
+    <span class="gate-progress"></span>
+  </button>
+</div>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="/">
+      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" fill="none" stroke="#8a9578" stroke-width="1"/>
+        <circle cx="12" cy="12" r="5" fill="none" stroke="#8a9578" stroke-width="1"/>
+        <circle cx="17" cy="7" r="2" fill="#c8f542"/>
+      </svg>
+      LLM Radar
+    </a>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/models">Models</a>
+      <a href="/compare">Compare</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/about">About</a>
+    </nav>
+    <div class="header-status"><span class="dot live"></span><span class="header-status-text">LOADING</span></div>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-label="Menu">≡</button>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap hero-inner" id="hero">
+      <p class="eyebrow reveal-word" style="animation-delay:0ms">Live price index · 5 providers · <span id="eyebrow-count">33</span> models</p>
+
+      <h1 class="display">
+        <span class="reveal-word" style="animation-delay:70ms">Model</span>
+        <span class="reveal-word ital lime" style="animation-delay:140ms">Radar</span>
+      </h1>
+
+      <p class="hero-sub">
+        <span class="reveal-word" style="animation-delay:210ms">Every price,</span>
+        <span class="reveal-word lime" style="animation-delay:280ms">measured.</span>
+        <svg class="scribble" width="150" height="40" viewBox="0 0 150 40" aria-hidden="true">
+          <path d="M6 30 C30 4, 52 4, 66 24 C78 40, 96 38, 106 20 C114 6, 132 8, 144 22"/>
+        </svg>
+      </p>
+
+      <p class="hero-lede reveal-word" style="animation-delay:350ms">
+        Pricing, context windows, cache rates and free tiers across Claude, GPT, Gemini, Llama and
+        Mistral — re-checked automatically, so the number you read is the number you pay.
+      </p>
+
+      <svg class="radar" viewBox="0 0 150 150" aria-hidden="true">
+        <defs>
+          <linearGradient id="sweepg" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#c8f542" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#c8f542" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <circle class="ring" cx="75" cy="75" r="68"/>
+        <circle class="ring" cx="75" cy="75" r="40"/>
+        <line class="cross" x1="7" y1="75" x2="143" y2="75"/>
+        <line class="cross" x1="75" y1="7" x2="75" y2="143"/>
+        <g class="sweep"><path d="M75 75 L143 75 A68 68 0 0 0 108 16 Z" fill="url(#sweepg)"/>
+          <line x1="75" y1="75" x2="143" y2="75" stroke="#c8f542" stroke-width="1" opacity="0.8"/></g>
+        <circle cx="104" cy="52" r="2.5" fill="#c8f542"/>
+        <circle cx="48" cy="97" r="2.5" fill="#c8f542"/>
+        <circle cx="96" cy="108" r="2" fill="#f1f4e6" opacity="0.5"/>
+        <circle cx="42" cy="55" r="2" fill="#f1f4e6" opacity="0.5"/>
+      </svg>
+
+      <div class="stat-grid" id="stats"></div>
+    </div>
+
+    <div class="ticker" id="ticker" aria-hidden="true"><div class="ticker-track"></div></div>
+  </section>
+
+  <section class="sec">
+    <div class="wrap">
+      <p class="eyebrow">Signal · picked from live data</p>
+      <h2 class="display">Best in <span class="q">class.</span></h2>
+      <p class="sec-lede">Four questions everyone asks, answered from the current index rather than a blog post from last year.</p>
+      <div class="card-grid" id="picks"></div>
+      <p class="table-foot">Picked automatically on every page load · <a class="linkbtn" href="/compare">See the full index →</a></p>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="wrap">
+      <p class="eyebrow">Method</p>
+      <h2 class="display">How this stays <span class="q">honest.</span></h2>
+      <div class="card-grid" style="margin-top:36px">
+        <div class="card">
+          <h3>Scraped, not guessed</h3>
+          <p class="card-best">A cron job re-reads each vendor's own pricing page on a schedule. Nothing here is typed in by hand and left to rot.</p>
+        </div>
+        <div class="card">
+          <h3>Freshness on every row</h3>
+          <p class="card-best">Each price carries its age. <span class="lime">LIVE</span> was pulled from the vendor inside a week. VERIFIED was hand-checked. STALE means don't trust it yet.</p>
+        </div>
+        <div class="card">
+          <h3>No vendor rankings</h3>
+          <p class="card-best">Providers are listed in whatever order you sort them. There is no paid placement and no house favourite.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="ghost-mark">LLM Radar</div>
+    <div class="foot-meta">
+      <span>© 2026 LLMRadar</span>
+      <span>Independent · not affiliated with any provider</span>
+      <nav>
+        <a href="/">Home</a><a href="/models">Models</a><a href="/compare">Compare</a>
+        <a href="/pricing">Pricing</a><a href="/about">About</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+
+<script src="/core.js"></script>
+<script>
+LR.boot(function (models) {
+  const { esc, usd, tokens, freshness } = LR;
+
+  document.getElementById("eyebrow-count").textContent = models.length;
+  document.getElementById("hero").classList.add("revealed");
+
+  /* ---- stats ---- */
+  const priced = models.filter((m) => m.input_price != null);
+  const live = models.filter((m) => freshness(m).state === "live");
+  const cheapest = [...priced].sort((a, b) => a.input_price - b.input_price)[0];
+  const providers = [...new Set(models.map((m) => m.provider))];
+
+  document.getElementById("stats").innerHTML = [
+    ["Models tracked", models.length, "Across " + providers.length + " providers"],
+    ["Providers", providers.length, providers.map((p) => LR.PROVIDER_LABEL[p] || p).join(" · ")],
+    ["Live rows", `<span class="lime">${live.length}</span>`, "Re-fetched < 7 days"],
+    ["Cheapest input", cheapest ? usd(cheapest.input_price) : "—",
+      cheapest ? esc(cheapest.model_id) + " · per 1M" : ""],
+  ].map(([k, v, s]) =>
+    `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div><span class="s">${s}</span></div>`
+  ).join("");
+
+  LR.observe(".stat-grid");
+
+  /* ---- ticker ---- */
+  const items = [...priced].sort((a, b) => a.input_price - b.input_price).slice(0, 10)
+    .map((m) => `<span class="ticker-item">${esc(m.name)} <b>${usd(m.input_price)} / ${usd(m.output_price) || "—"}</b></span>`)
+    .join("");
+  document.querySelector(".ticker-track").innerHTML = items + items;
+
+  /* ---- best-in-class picks ---- */
+  const byLowest = (arr, key) => arr.filter((m) => m[key] != null).sort((a, b) => a[key] - b[key])[0];
+  const byHighest = (arr, key) => arr.filter((m) => m[key] != null).sort((a, b) => b[key] - a[key])[0];
+
+  const picks = [
+    ["Cheapest to run", byLowest(priced, "input_price"), "Lowest input price per 1M tokens"],
+    ["Biggest context", byHighest(models, "context_window"), "Most tokens in a single prompt"],
+    ["Best for coding", models.find((m) => m.category === "coding"), "Vendor-stated coding specialism"],
+    ["Best for reasoning", models.find((m) => m.category === "reasoning"), "Built for multi-step problems"],
+  ].filter(([, m]) => m);
+
+  document.getElementById("picks").innerHTML = picks.map(([title, m, why]) => `
+    <div class="card">
+      <div class="card-top">
+        <div>
+          <p class="eyebrow no-rule" style="margin-bottom:10px">${title}</p>
+          <h3>${esc(m.name)}</h3>
+          <span class="m-id">${esc(m.model_id)}</span>
+        </div>
+      </div>
+      <p class="card-best">${esc(m.best_for || why)}</p>
+      <div class="card-rows">
+        <div class="card-row"><span class="rk">Input</span><span class="rv">${usd(m.input_price) || "—"}</span></div>
+        <div class="card-row"><span class="rk">Output</span><span class="rv">${usd(m.output_price) || "—"}</span></div>
+        <div class="card-row"><span class="rk">Context</span><span class="rv">${tokens(m.context_window) || "—"}</span></div>
+      </div>
+      ${LR.freshBadge(m)}
+    </div>`).join("");
+});
+</script>
+</body>
+</html>

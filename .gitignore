@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+data/
+nohup.out
+.playwright-mcp/
+aa-*.png
