@@ -143,6 +143,7 @@ window.LR = (function () {
 
   /* ---------------- header + nav ---------------- */
   function chrome() {
+    initTheme();
     const header = $(".site-header");
     if (header) {
       const onScroll = () => header.classList.toggle("scrolled", window.scrollY > 8);
@@ -200,6 +201,182 @@ window.LR = (function () {
     gate(run);
   }
 
+  /* ---------------- theme ---------------- */
+  const THEME_KEY = "lr-theme";
+
+  function setTheme(t) {
+    document.documentElement.setAttribute("data-theme", t);
+    try { localStorage.setItem(THEME_KEY, t); } catch (e) { /* private mode */ }
+    $$(".theme-toggle").forEach((b) =>
+      b.setAttribute("aria-label", t === "light" ? "Switch to dark theme" : "Switch to light theme"));
+  }
+
+  function initTheme() {
+    const current = document.documentElement.getAttribute("data-theme") || "dark";
+    setTheme(current);
+    $$(".theme-toggle").forEach((b) =>
+      b.addEventListener("click", () =>
+        setTheme(document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light")));
+  }
+
+  /* ---------------- model prose ----------------
+     Generated from the structured record rather than hand-written per model,
+     so the copy cannot drift out of sync with the data. */
+  const PROVIDER_COMPANY = {
+    anthropic: "Anthropic", openai: "OpenAI", google: "Google",
+    groq: "Groq", mistral: "Mistral",
+  };
+  const CATEGORY_PHRASE = {
+    reasoning: "reasoning-focused", coding: "coding-focused",
+    vision: "vision-focused", general: "general-purpose",
+  };
+
+  function describe(m) {
+    const co = PROVIDER_COMPANY[m.provider] || m.provider;
+    const cat = CATEGORY_PHRASE[m.category] || "general-purpose";
+    const out = [`${m.name} is a ${cat} model served by ${co}.`];
+
+    if (m.best_for) {
+      const b = m.best_for.replace(/^Ideal for\s+/i, "").replace(/\.$/, "");
+      out.push(`It is positioned for ${b.charAt(0).toLowerCase() + b.slice(1)}.`);
+    }
+
+    const io = [];
+    const c = m.capabilities || {};
+    if (c.vision && c.audio) io.push("reads text, images and audio");
+    else if (c.vision) io.push("reads text and images");
+    else io.push("reads text only");
+    if (m.context_window) io.push(`holds up to ${tokens(m.context_window)} tokens in a single prompt`);
+    if (m.max_output) io.push(`and can return up to ${tokens(m.max_output)}`);
+    out.push("It " + io.join(", ") + ".");
+
+    const supports = [];
+    if (c.tools) supports.push("tool calling");
+    if (c.reasoning) supports.push("an extended reasoning mode");
+    if (c.caching) supports.push("prompt caching");
+    if (c.batch) supports.push("batch processing");
+    if (c.fine_tune) supports.push("fine-tuning");
+    if (supports.length) {
+      const last = supports.pop();
+      out.push(`Supports ${supports.length ? supports.join(", ") + " and " + last : last}.`);
+    }
+
+    if (c.open_weights) out.push("The weights are open, so it can also be self-hosted.");
+    out.push(m.free_tier ? `A free tier is available (${m.free_tier.toLowerCase()}).`
+                         : "No free tier is offered.");
+    return out.join(" ");
+  }
+
+  const shortDescribe = (m) => {
+    const c = m.capabilities || {};
+    const bits = [];
+    if (m.best_for) bits.push(m.best_for.replace(/^Ideal for\s+/i, "").replace(/\.$/, ""));
+    const extra = [];
+    if (m.context_window) extra.push(`${tokens(m.context_window)} context`);
+    if (c.vision) extra.push("vision");
+    if (c.reasoning) extra.push("reasoning mode");
+    if (c.open_weights) extra.push("open weights");
+    if (extra.length) bits.push(extra.join(" · "));
+    return bits.join(". ") + ".";
+  };
+
+  /* ---------------- detail modal ---------------- */
+  function openDetail(m) {
+    const c = m.capabilities || {};
+    const specs = [
+      ["Provider", PROVIDER_COMPANY[m.provider] || m.provider],
+      ["Type", m.category || "—"],
+      ["Context window", tokens(m.context_window) || "—"],
+      ["Max output", tokens(m.max_output) || "—"],
+      ["Inputs / outputs", m.modalities || "—"],
+      ["Free tier", m.free_tier || "None"],
+    ];
+
+    const html = `<div class="modal-root" id="detailroot">
+      <div class="modal" role="dialog" aria-modal="true" aria-label="${esc(m.name)} details">
+        <div class="detail-head">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
+            <div>
+              <p class="eyebrow">${esc(PROVIDER_COMPANY[m.provider] || m.provider)}${m.category ? " · " + esc(m.category) : ""}</p>
+              <h2>${esc(m.name)}</h2>
+              <span class="m-id">${esc(m.model_id)}</span>
+            </div>
+            <button class="modal-close" type="button" aria-label="Close">✕</button>
+          </div>
+        </div>
+        <div class="modal-body detail-body">
+          <p class="detail-lede">${esc(describe(m))}</p>
+
+          <div class="detail-sec">
+            <h3>Specifications</h3>
+            <div class="spec-grid">${specs.map(([k, v]) =>
+              `<div class="spec"><span class="sk">${esc(k)}</span><span class="sv">${esc(v)}</span></div>`).join("")}</div>
+          </div>
+
+          ${Array.isArray(m.features) && m.features.length ? `
+          <div class="detail-sec">
+            <h3>Key points</h3>
+            <ul class="featlist">${m.features.map((f) => `<li>${esc(f)}</li>`).join("")}</ul>
+          </div>` : ""}
+
+          <div class="detail-sec">
+            <h3>Capabilities</h3>
+            <div class="capgrid">${CAPS.map(([k, label]) =>
+              `<div class="capitem ${c[k] ? "" : "off"}">${capMark(m, k)} ${esc(label)}</div>`).join("")}</div>
+          </div>
+        </div>
+        <div class="detail-foot">
+          <a class="btn" href="compare.html">See pricing &amp; compare</a>
+          ${m.url ? `<a class="btn ghost" href="${esc(m.url)}" target="_blank" rel="noopener">Vendor page ↗</a>` : ""}
+          <span class="detail-note">${freshness(m).label}</span>
+        </div>
+      </div>
+    </div>`;
+
+    document.body.insertAdjacentHTML("beforeend", html);
+    document.documentElement.style.overflow = "hidden";
+    const root = $("#detailroot");
+    const closeBtn = $(".modal-close", root);
+    closeBtn.focus();
+
+    function close() {
+      root.remove();
+      document.documentElement.style.overflow = "";
+      document.removeEventListener("keydown", onKey);
+      if (location.hash.startsWith("#model=")) history.replaceState(null, "", location.pathname);
+    }
+    function onKey(e) {
+      if (e.key === "Escape") close();
+      if (e.key === "Tab") {
+        const f = $$('button, [href], input, select, [tabindex]:not([tabindex="-1"])', root);
+        if (!f.length) return;
+        const first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    }
+    closeBtn.addEventListener("click", close);
+    root.addEventListener("click", (e) => { if (e.target === root) close(); });
+    document.addEventListener("keydown", onKey);
+    history.replaceState(null, "", "#model=" + encodeURIComponent(m.model_id));
+  }
+
+  /** Wire every [data-detail] button in a container, plus #model= deep links. */
+  function wireDetails(models, container) {
+    (container || document).addEventListener("click", (e) => {
+      const b = e.target.closest("[data-detail]");
+      if (!b) return;
+      const m = models.find((x) => x.model_id === b.dataset.detail);
+      if (m) openDetail(m);
+    });
+    const hash = decodeURIComponent((location.hash.match(/^#model=(.+)$/) || [])[1] || "");
+    if (hash) {
+      const m = models.find((x) => x.model_id === hash);
+      if (m) openDetail(m);
+    }
+  }
+
   return { $, $$, esc, usd, tokens, daysSince, freshness, freshBadge, load, boot, observe,
-           PROVIDER_LABEL, CAPS, capMark, capCount };
+           PROVIDER_LABEL, PROVIDER_COMPANY, CAPS, capMark, capCount,
+           setTheme, initTheme, describe, shortDescribe, openDetail, wireDetails };
 })();
