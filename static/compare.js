@@ -2,12 +2,10 @@
 LR.boot(function (models) {
   const { $, $$, esc, usd, tokens, freshness, freshBadge, PROVIDER_LABEL } = LR;
   const MAX = 4;
-  const MR_CAPS = LR.CAPS;
 
   const state = {
     view: "pricing",
     provider: "all",
-    category: "all",
     cap: "all",
     price: "all",
     ctx: "all",
@@ -26,20 +24,14 @@ LR.boot(function (models) {
     `<button class="chip active" data-p="all">All</button>` +
     providers.map((p) => `<button class="chip" data-p="${esc(p)}">${esc(PROVIDER_LABEL[p] || p)}</button>`).join("");
 
-  const cats = [...new Set(models.map((m) => m.category).filter(Boolean))].sort();
-  $("#category").insertAdjacentHTML("beforeend",
-    cats.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join(""));
-
   $("#capfilter").insertAdjacentHTML("beforeend",
-    MR_CAPS.map(([k, label]) => `<option value="${k}">Has ${label.toLowerCase()}</option>`).join(""));
-
+    LR.CAPS.map(([k, label]) => `<option value="${k}">Has ${label.toLowerCase()}</option>`).join(""));
 
   /* ---------- derive ---------- */
   function rows() {
     const q = state.q;
     let out = models.filter((m) =>
       (state.provider === "all" || m.provider === state.provider) &&
-      (state.category === "all" || m.category === state.category) &&
       (state.cap === "all" || (m.capabilities && m.capabilities[state.cap])) &&
       (state.price === "all" || (m.input_price != null && m.input_price < +state.price)) &&
       (state.ctx === "all" || (m.context_window != null && m.context_window >= +state.ctx)) &&
@@ -86,10 +78,10 @@ LR.boot(function (models) {
   }
 
   function resetFilters() {
-    Object.assign(state, { provider: "all", category: "all", cap: "all",
+    Object.assign(state, { provider: "all", cap: "all",
                            price: "all", ctx: "all", age: "all", q: "" });
     $("#search").value = "";
-    ["category", "capfilter", "pricefilter", "ctxfilter", "agefilter"]
+    ["capfilter", "pricefilter", "ctxfilter", "agefilter"]
       .forEach((id) => { const el = $("#" + id); if (el) el.value = "all"; });
     $$("#chips .chip").forEach((c) => c.classList.toggle("active", c.dataset.p === "all"));
     render();
@@ -331,7 +323,6 @@ LR.boot(function (models) {
   });
 
   [
-    ["category", "category"],
     ["capfilter", "cap"],
     ["pricefilter", "price"],
     ["ctxfilter", "ctx"],
