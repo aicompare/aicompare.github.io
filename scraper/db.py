@@ -1,8 +1,8 @@
-"""SQLite storage for ModelRadar. One shared DB, one row per (provider, model)."""
+"""SQLite storage for LLMRadar. One shared DB, one row per (provider, model)."""
 import sqlite3
 from pathlib import Path
 
-DB_PATH = Path(__file__).resolve().parent.parent / "data" / "modelradar.db"
+DB_PATH = Path(__file__).resolve().parent.parent / "data" / "llmradar.db"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS models (

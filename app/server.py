@@ -12,7 +12,7 @@ from scraper import db
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
 
-app = FastAPI(title="ModelRadar", version="2.0.0")
+app = FastAPI(title="LLMRadar", version="2.0.0")
 
 
 @app.get("/api/models")
