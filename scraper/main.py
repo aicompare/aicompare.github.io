@@ -36,6 +36,9 @@ def main() -> None:
     for name in names:
         run(name, PROVIDERS[name])
 
+    from . import enrich
+    enrich.main()
+
 
 if __name__ == "__main__":
     main()

@@ -46,7 +46,7 @@ def model_row(provider, model_id, name, input_price=None, output_price=None,
               context_window=None, max_output=None, cache_read_price=None,
               cache_write_price=None, free_tier=None, category=None,
               best_for=None, modalities=None, features=None, capabilities=None,
-              url=None, source="live"):
+              released=None, url=None, source="live"):
     return {
         "provider": provider, "model_id": model_id, "name": name,
         "input_price": input_price, "output_price": output_price,
@@ -55,5 +55,6 @@ def model_row(provider, model_id, name, input_price=None, output_price=None,
         "cache_write_price": cache_write_price,
         "free_tier": free_tier, "category": category, "best_for": best_for,
         "modalities": modalities, "features": features,
-        "capabilities": capabilities, "url": url, "source": source,
+        "capabilities": capabilities, "released": released,
+        "url": url, "source": source,
     }

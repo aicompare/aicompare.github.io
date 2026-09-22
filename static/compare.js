@@ -2,11 +2,13 @@
 LR.boot(function (models) {
   const { $, $$, esc, usd, tokens, freshness, freshBadge, PROVIDER_LABEL } = LR;
   const MAX = 4;
+  const MR_CAPS = LR.CAPS;
 
   const state = {
     view: "pricing",
     provider: "all",
     category: "all",
+    cap: "all",
     q: "",
     sort: { key: "input_price", asc: true },
     selected: new Set(),
@@ -25,12 +27,17 @@ LR.boot(function (models) {
   $("#category").insertAdjacentHTML("beforeend",
     cats.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join(""));
 
+  $("#capfilter").insertAdjacentHTML("beforeend",
+    MR_CAPS.map(([k, label]) => `<option value="${k}">Has ${label.toLowerCase()}</option>`).join(""));
+  $("#sortsel").innerHTML = LR.sortOptions("input_price");
+
   /* ---------- derive ---------- */
   function rows() {
     const q = state.q;
     let out = models.filter((m) =>
       (state.provider === "all" || m.provider === state.provider) &&
       (state.category === "all" || m.category === state.category) &&
+      (state.cap === "all" || (m.capabilities && m.capabilities[state.cap])) &&
       (!q || (m.name + " " + m.model_id + " " + m.provider + " " + (m.best_for || "")).toLowerCase().includes(q))
     );
     const { key: k, asc } = state.sort;
@@ -228,7 +235,8 @@ LR.boot(function (models) {
       ["Best for", (m) => m.best_for, null, null, true],
       ["Inputs / outputs", (m) => m.modalities, null, null, true],
       ["Free tier", (m) => m.free_tier || "None"],
-      ["Updated", (m) => freshness(m).label],
+      ["Released", (m) => m.released || "—"],
+      ["Data checked", (m) => freshness(m).label],
     ];
 
     const capRows = LR.CAPS.map(([k, label, tip]) => `
@@ -314,6 +322,12 @@ LR.boot(function (models) {
   });
 
   $("#category").addEventListener("change", (e) => { state.category = e.target.value; render(); });
+  $("#capfilter").addEventListener("change", (e) => { state.cap = e.target.value; render(); });
+  $("#sortsel").addEventListener("change", (e) => {
+    const v = e.target.value;
+    state.sort = { key: v.replace(/^-/, ""), asc: !v.startsWith("-") };
+    render(true);
+  });
 
   let t;
   $("#search").addEventListener("input", (e) => {
@@ -326,6 +340,9 @@ LR.boot(function (models) {
     const k = b.closest("th").dataset.k;
     if (state.sort.key === k) state.sort.asc = !state.sort.asc;
     else state.sort = { key: k, asc: true };
+    const spec = (state.sort.asc ? "" : "-") + state.sort.key;
+    const sel = $("#sortsel");
+    if (sel) sel.value = [...sel.options].some((o) => o.value === spec) ? spec : "";
     render(true);
   }));
 

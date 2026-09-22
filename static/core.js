@@ -202,6 +202,38 @@ window.LR = (function () {
     gate(run);
   }
 
+  /* ---------------- sorting ----------------
+     Shared by the Models and Compare tabs so both offer identical ordering.
+     A leading "-" means descending. Nulls always sort last, whichever way. */
+  const SORTS = [
+    ["-released", "Latest first"],
+    ["input_price", "Cost: low to high"],
+    ["-input_price", "Cost: high to low"],
+    ["-context_window", "Biggest context"],
+    ["-max_output", "Largest output"],
+    ["name", "Name A–Z"],
+  ];
+
+  function sortModels(list, spec) {
+    const desc = spec.startsWith("-");
+    const k = desc ? spec.slice(1) : spec;
+    return [...list].sort((a, b) => {
+      let x = a[k], y = b[k];
+      if (x == null && y == null) return 0;
+      if (x == null) return 1;
+      if (y == null) return -1;
+      if (typeof x === "string" || typeof y === "string") {
+        const c = String(x).localeCompare(String(y));
+        return desc ? -c : c;
+      }
+      return desc ? y - x : x - y;
+    });
+  }
+
+  const sortOptions = (selected) =>
+    SORTS.map(([v, label]) =>
+      `<option value="${v}"${v === selected ? " selected" : ""}>${label}</option>`).join("");
+
   /* ---------------- theme ---------------- */
   const THEME_KEY = "lr-theme";
 
@@ -292,6 +324,7 @@ window.LR = (function () {
       ["Max output", tokens(m.max_output) || "—"],
       ["Inputs / outputs", m.modalities || "—"],
       ["Free tier", m.free_tier || "None"],
+      ["Released", m.released || "Not recorded"],
     ];
 
     const html = `<div class="modal-root" id="detailroot">
@@ -380,5 +413,6 @@ window.LR = (function () {
 
   return { $, $$, esc, usd, tokens, daysSince, freshness, freshBadge, load, boot, observe,
            PROVIDER_LABEL, PROVIDER_COMPANY, CAPS, capMark, capCount,
+           SORTS, sortModels, sortOptions,
            setTheme, initTheme, describe, shortDescribe, openDetail, wireDetails };
 })();

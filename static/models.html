@@ -52,11 +52,7 @@
       <select class="control" id="cap" aria-label="Filter by capability">
         <option value="all">Any capability</option>
       </select>
-      <select class="control" id="sort" aria-label="Sort models">
-        <option value="-context_window">Biggest context</option>
-        <option value="name">A–Z</option>
-        <option value="-max_output">Largest output</option>
-      </select>
+      <select class="control" id="sort" aria-label="Sort models"></select>
       <span class="count" id="count"></span>
     </div>
   </div>
@@ -83,7 +79,8 @@
 <script>
 LR.boot(function (models) {
   const { $, $$, esc, usd, tokens, freshBadge, PROVIDER_LABEL } = LR;
-  const state = { provider: "all", cap: "all", q: "", sort: "-context_window" };
+  const state = { provider: "all", cap: "all", q: "", sort: "-released" };
+  $("#sort").innerHTML = LR.sortOptions(state.sort);
 
   $("#cap").insertAdjacentHTML("beforeend",
     LR.CAPS.map(([k, label]) => `<option value="${k}">Has ${label.toLowerCase()}</option>`).join(""));
@@ -102,16 +99,7 @@ LR.boot(function (models) {
       (!state.q || (m.name + " " + m.model_id + " " + (m.best_for || "") +
         " " + (m.features || []).join(" ")).toLowerCase().includes(state.q))
     );
-    const s = state.sort;
-    const desc = s.startsWith("-");
-    const k = desc ? s.slice(1) : s;
-    list.sort((a, b) => {
-      let x = a[k], y = b[k];
-      if (k === "name") return String(x).localeCompare(String(y));
-      if (x == null) return 1;
-      if (y == null) return -1;
-      return desc ? y - x : x - y;
-    });
+    list = LR.sortModels(list, state.sort);
 
     $("#grid").innerHTML = list.length ? list.map((m) => `
       <article class="card">

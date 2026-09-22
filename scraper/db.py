@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS models (
   modalities TEXT,
   features TEXT,
   capabilities TEXT,
+  released TEXT,
   url TEXT,
   source TEXT NOT NULL DEFAULT 'live',
   scraped_at TEXT,
@@ -45,7 +46,7 @@ def connect() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA)
-    for col in ("category", "best_for", "modalities", "features", "capabilities"):
+    for col in ("category", "best_for", "modalities", "features", "capabilities", "released"):
         try:
             conn.execute(f"ALTER TABLE models ADD COLUMN {col} TEXT")
         except sqlite3.OperationalError:
@@ -72,8 +73,8 @@ def upsert_models(conn: sqlite3.Connection, rows: list[dict]) -> int:
             INSERT INTO models (provider, model_id, name, context_window, max_output,
                                 input_price, output_price, cache_read_price,
                                 cache_write_price, free_tier, category, best_for,
-                                modalities, features, capabilities, url, source, scraped_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                modalities, features, capabilities, released, url, source, scraped_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(provider, model_id) DO UPDATE SET
               name = excluded.name,
               context_window = excluded.context_window,
@@ -88,6 +89,7 @@ def upsert_models(conn: sqlite3.Connection, rows: list[dict]) -> int:
               modalities = excluded.modalities,
               features = excluded.features,
               capabilities = excluded.capabilities,
+              released = COALESCE(excluded.released, models.released),
               url = excluded.url,
               source = excluded.source,
               scraped_at = excluded.scraped_at
@@ -98,7 +100,7 @@ def upsert_models(conn: sqlite3.Connection, rows: list[dict]) -> int:
                 r.get("cache_read_price"), r.get("cache_write_price"),
                 r.get("free_tier"), r.get("category"), r.get("best_for"),
                 r.get("modalities"), _json(r.get("features")), _json(r.get("capabilities")),
-                r.get("url"), r.get("source", "live"), now,
+                r.get("released"), r.get("url"), r.get("source", "live"), now,
             ),
         )
     conn.commit()
