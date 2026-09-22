@@ -42,6 +42,7 @@ window.LR = (function () {
 
   const PROVIDER_LABEL = {
     anthropic: "Claude", openai: "GPT", google: "Gemini", groq: "Llama", mistral: "Mistral",
+    xai: "Grok", deepseek: "DeepSeek", together: "Qwen / Gemma",
   };
 
   /* Capability matrix: key → [short label, tooltip] */
@@ -224,7 +225,8 @@ window.LR = (function () {
      so the copy cannot drift out of sync with the data. */
   const PROVIDER_COMPANY = {
     anthropic: "Anthropic", openai: "OpenAI", google: "Google",
-    groq: "Groq", mistral: "Mistral",
+    groq: "Groq", mistral: "Mistral", xai: "xAI", deepseek: "DeepSeek",
+    together: "Together AI",
   };
   const CATEGORY_PHRASE = {
     reasoning: "reasoning-focused", coding: "coding-focused",
