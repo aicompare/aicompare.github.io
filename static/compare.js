@@ -9,6 +9,9 @@ LR.boot(function (models) {
     provider: "all",
     category: "all",
     cap: "all",
+    price: "all",
+    ctx: "all",
+    age: "all",
     q: "",
     sort: { key: "input_price", asc: true },
     selected: new Set(),
@@ -29,7 +32,7 @@ LR.boot(function (models) {
 
   $("#capfilter").insertAdjacentHTML("beforeend",
     MR_CAPS.map(([k, label]) => `<option value="${k}">Has ${label.toLowerCase()}</option>`).join(""));
-  $("#sortsel").innerHTML = LR.sortOptions("input_price");
+
 
   /* ---------- derive ---------- */
   function rows() {
@@ -38,6 +41,9 @@ LR.boot(function (models) {
       (state.provider === "all" || m.provider === state.provider) &&
       (state.category === "all" || m.category === state.category) &&
       (state.cap === "all" || (m.capabilities && m.capabilities[state.cap])) &&
+      (state.price === "all" || (m.input_price != null && m.input_price < +state.price)) &&
+      (state.ctx === "all" || (m.context_window != null && m.context_window >= +state.ctx)) &&
+      (state.age === "all" || (m.released && LR.daysSince(m.released) <= +state.age)) &&
       (!q || (m.name + " " + m.model_id + " " + m.provider + " " + (m.best_for || "")).toLowerCase().includes(q))
     );
     const { key: k, asc } = state.sort;
@@ -80,9 +86,12 @@ LR.boot(function (models) {
   }
 
   function resetFilters() {
-    state.provider = "all"; state.category = "all"; state.q = "";
-    $("#search").value = ""; $("#category").value = "all";
-    $$(".chip").forEach((c) => c.classList.toggle("active", c.dataset.p === "all"));
+    Object.assign(state, { provider: "all", category: "all", cap: "all",
+                           price: "all", ctx: "all", age: "all", q: "" });
+    $("#search").value = "";
+    ["category", "capfilter", "pricefilter", "ctxfilter", "agefilter"]
+      .forEach((id) => { const el = $("#" + id); if (el) el.value = "all"; });
+    $$("#chips .chip").forEach((c) => c.classList.toggle("active", c.dataset.p === "all"));
     render();
   }
 
@@ -321,13 +330,16 @@ LR.boot(function (models) {
     render();
   });
 
-  $("#category").addEventListener("change", (e) => { state.category = e.target.value; render(); });
-  $("#capfilter").addEventListener("change", (e) => { state.cap = e.target.value; render(); });
-  $("#sortsel").addEventListener("change", (e) => {
-    const v = e.target.value;
-    state.sort = { key: v.replace(/^-/, ""), asc: !v.startsWith("-") };
-    render(true);
-  });
+  [
+    ["category", "category"],
+    ["capfilter", "cap"],
+    ["pricefilter", "price"],
+    ["ctxfilter", "ctx"],
+    ["agefilter", "age"],
+  ].forEach(([id, key]) =>
+    $("#" + id).addEventListener("change", (e) => { state[key] = e.target.value; render(); }));
+
+  $("#resetfilters").addEventListener("click", resetFilters);
 
   let t;
   $("#search").addEventListener("input", (e) => {
@@ -340,9 +352,6 @@ LR.boot(function (models) {
     const k = b.closest("th").dataset.k;
     if (state.sort.key === k) state.sort.asc = !state.sort.asc;
     else state.sort = { key: k, asc: true };
-    const spec = (state.sort.asc ? "" : "-") + state.sort.key;
-    const sel = $("#sortsel");
-    if (sel) sel.value = [...sel.options].some((o) => o.value === spec) ? spec : "";
     render(true);
   }));
 

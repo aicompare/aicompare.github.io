@@ -60,7 +60,27 @@
       <select class="control" id="capfilter" aria-label="Filter by capability flag">
         <option value="all">Any capability</option>
       </select>
-      <select class="control" id="sortsel" aria-label="Sort models"></select>
+      <select class="control" id="pricefilter" aria-label="Filter by input price">
+        <option value="all">Any price</option>
+        <option value="0.5">Under $0.50 / 1M</option>
+        <option value="1">Under $1 / 1M</option>
+        <option value="3">Under $3 / 1M</option>
+        <option value="10">Under $10 / 1M</option>
+      </select>
+      <select class="control" id="ctxfilter" aria-label="Filter by context window">
+        <option value="all">Any context</option>
+        <option value="128000">128K or more</option>
+        <option value="200000">200K or more</option>
+        <option value="500000">500K or more</option>
+        <option value="1000000">1M or more</option>
+      </select>
+      <select class="control" id="agefilter" aria-label="Filter by release date">
+        <option value="all">Any age</option>
+        <option value="90">Released last 3 months</option>
+        <option value="180">Released last 6 months</option>
+        <option value="365">Released last year</option>
+      </select>
+      <button class="chip" id="resetfilters" type="button">Reset</button>
       <span class="count" id="count"></span>
     </div>
   </div>
